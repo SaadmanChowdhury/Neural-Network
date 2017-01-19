@@ -6,11 +6,14 @@
 
  /******** 100 DAYS OF CODE: Day 001 *********/
  /******** 100 DAYS OF CODE: Day 002 *********/
+ /******** 100 DAYS OF CODE: Day 003 *********/
 
 #include <bits/stdc++.h>
 
 #ifndef NEURON_H
 #define NEURON_H
+
+#define DEFINE_THIS_YO(X) 1/(1+exp(-1*X)) /** THRESHOLD FUNCTION **/
 
 /** WHAT THIS CLASS DOES **/
 /*
@@ -32,6 +35,15 @@
 
 */
 
+class Neuron;
+
+struct Link{
+        Neuron* from;
+        Neuron* to;
+        double weight;
+        double output;
+};
+
 class Neuron{
 
 private:
@@ -40,21 +52,15 @@ private:
     int numberOfInputs;
     int layerNumber;
 
-    static double generateWeight();
-
-    bool isInputNeuron = NULL;
-    bool isOutputNeuron = NULL;
-    bool isReadyForCascadingOutput = false;
-
     double neuronValue = 0.00;
-    vector<Neuron*> nextLayerNeurons;
-    vector<Neuron*> previousLayerNeurons;
-    vector<double> weights;
-    vector<double> inputsFromPreviousLayer;
+    vector<Link*> linkNextLayer;
+    vector<Link*> linkPreviousLayer;
 
-    void adjustAllWeights(double error);
-    bool backTrack_cascadingOutput();
-    bool feedForward();
+    double generateRandomWeight();
+
+    double offsetOutput(double x); /** THRESHOLD FUNCTION **/
+
+    bool updateWeights();
 
 public:
 
@@ -63,18 +69,21 @@ public:
 
     Neuron();
     Neuron(int layerNubmer);
-    bool connectForward(Neuron* child);
-    bool connectBackward(Neuron* parent);
 
     bool classifyAsInputNeuron();
     bool classifyAsOutputNeuron();
+
+    bool connectForward(Neuron* to);
+    Link* connectBackward(Neuron* from);
+
     bool setInputVal(double input);
     double getOutputVal();
-
-    bool cascadingOutput_master_function();
+    bool feedForward();
+/*
     double generateOutput(double* inputs);
     double* trainNeuron(double* expectedOutput, int N);
-
+    void adjustAllWeights(double error);
+*/
     /** BUGTEST UTILITY **/
     Neuron(Neuron* parentNeuron); // for copying a neuron exactly (!)[DOES NOT INCREASE COUNT](!)
     int getNumberOfInputs();
