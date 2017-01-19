@@ -3,19 +3,31 @@
 
 #include "Neuron.h"
 
+/** NOTES TO EDITORS **/
+/*
+    THROUGH OUT THE COURSE OF THIS CODE, THE FOLLOWING CONVENTIONS ARE FOLLOWED:
+        Link* are named - connection - wherever possible
+*/
+
 /* ************************************************************************************************************/
 /* **************************************** *//** CONSTRUCTORS **//* ******************************************/
 /* ************************************************************************************************************/
 
 Neuron::Neuron(){
+    layerNumber = -1;
+
+    numberOfInputs = 0;
     neuronID = total_neurons;
     total_neurons++;
+    srand (time(NULL));
 }
 
 Neuron::Neuron(int layerNumer){
     //Neuron();
+    srand (time(NULL));
     this->layerNumber = layerNumber;
 
+    numberOfInputs = 0;
     neuronID = total_neurons;
     total_neurons++;
 
@@ -23,54 +35,71 @@ Neuron::Neuron(int layerNumer){
 
 }
 
+
+
+
 /* ************************************************************************************************************/
 /* ********************************** *//** CONNECTION MAKING FUNCTIONS **//* *********************************/
 /* ************************************************************************************************************/
 
 /** TO BE CALLED BY USER **/
 bool Neuron::connectForward(Neuron* child){
+
     if(isOutputNeuron == true) // OUTPUT_NEURONS cannot link to forward neurons
         return false;
 
-    if(child->connectBackward(this)){
-        nextLayerNeurons.push_back(child);
+    try{
+
+        Link* connection = child->connectBackward(this);
+
+        linkNextLayer.push_back(connection);
+        cout << "["<< connection->from->getID() << "] connects to [" << connection->to->getID() << "] with weight " << connection->weight<<endl;
         isOutputNeuron = false;
 
-        double weight = generateWeight();
-        weights.push_back(weight);
-
-        cout << "["<< getID() << "] connects to [" << child->getID() << "] with weight " << weights.back() <<endl;
-
         return true;
-    }
-    else
+
+    }catch (...){
+
         return false;
+
+    }
 }
 
 /** CALLED BY THE CLASS **/
-bool Neuron::connectBackward(Neuron* parent){
-    if(isInputNeuron == true) // INPUT_NEURONS cannot have any neurons behind them
-        return false;
+Link* Neuron::connectBackward(Neuron* parent){
 
-    previousLayerNeurons.push_back(parent);
+    if(isInputNeuron == true)
+        throw "INPUT_NEURONS cannot have any neurons behind them";
+
+    Link* connection = new Link;
+    connection-> from = parent;
+    connection-> to = this;
+    connection-> weight = generateRandomWeight();
+
+    linkPreviousLayer.push_back(connection);
+    numberOfInputs++;
 
     isInputNeuron = false;
 
-    return true;
+    return connection;
 }
+
+
+
 
 /* ************************************************************************************************************/
 /* ************************************ *//** VALUE SETTING FUNCTIONS **//* ***********************************/
 /* ************************************************************************************************************/
 
-double Neuron::generateWeight(){
-    srand (time(NULL));
+double Neuron::generateRandomWeight(){
+
     return (rand()%150 / 100.0); /*        value is open for consideration    */ /** (!) **/
+    //return 1.0;
     //return (rand() % (int)ceil((learning_rate*10.0))) / (learning_rate*10.0);
 }
 
 bool Neuron::classifyAsInputNeuron(){
-    if(isInputNeuron == NULL){
+    if(isInputNeuron == NULL && !isOutputNeuron){
         isInputNeuron = true;
     }
 
@@ -78,7 +107,7 @@ bool Neuron::classifyAsInputNeuron(){
 }
 
 bool Neuron::classifyAsOutputNeuron(){
-    if(isOutputNeuron == NULL){
+    if(isOutputNeuron == NULL && !isInputNeuron){
         isOutputNeuron = true;
     }
 
@@ -88,8 +117,6 @@ bool Neuron::classifyAsOutputNeuron(){
 bool Neuron::setInputVal(double in){
     if(isInputNeuron){
         neuronValue = in;
-
-        isReadyForCascadingOutput = true;
     }
 
     return isInputNeuron;
@@ -100,78 +127,76 @@ double Neuron::getOutputVal(){
 }
 
 
+
+
 /* ************************************************************************************************************/
-/* ************************************ *//** OPERATIONAL FUNCTIONS **//* *************************************/
+/* *************************************** *//** CASCADING OUTPUT **//* ***************************************/
 /* ************************************************************************************************************/
-
-bool Neuron::cascadingOutput_master_function(){
-    if(isOutputNeuron != true)
-        return false /* MUST BE CALLED THE OUTPUT NEURON TO INITIATE */
-
-}
-
-bool Neuron::backTrack_cascadingOutput(Neuron* currentNeuron){
-
-    try{
-        if(currentNeuron->isInputNeuron){
-            if(isReadyForCascadingOutput == false)
-                return false; /* INPUT NEURON's VALUE IS NOT SPECIFIED! */
-
-            feedForward();
-
-            return true;
-        }
-    } catch(exception &e){
-        cout << endl;cout << endl;
-        cout << "An *ERROR* occurred in <BACK_TRACKING> for Neuron[" << currentNeuron->getID() <<"]";
-        cout << endl;cout << endl;
-    }
-
-}
 
 bool Neuron::feedForward(){
 
-    for(int i=0; i<nextLayerNeurons.size(); i++){
-        neuronValue*nextLayerNeurons[i].weight
+    Neuron* neuronToBeFed;
+    double valueToBeFed;
+    Link* connection;
+
+    /** Calculate the value to be fed **/
+    if(isInputNeuron==true)
+        valueToBeFed = neuronValue;
+    else
+        valueToBeFed = offsetOutput();
+
+    /* Feed values to all forward laying neurons */
+    for(int i=0; i<linkNextLayer.size(); i++){
+
+        connection = linkNextLayer[i];
+
+        connection -> output = valueToBeFed;
     }
 
+    return true;
+
 }
 
-double Neuron::generateOutput(double* inputs){
+double Neuron::offsetOutput(){
 
-    double sum=0;
+    double sum = 0.0;
+    for(int i=0; i< linkPreviousLayer.size(); i++){
 
-    for(int i=0;i<numberOfInputs;i++)
-        sum += inputs[i]*weights[i];
+        sum += linkPreviousLayer[i]->output * linkPreviousLayer[i]->weight;
 
-    neuronValue = 1 / (1 + exp(sum)); // OUTPUT VALUE FOR SIGMOID FUNCTION
-    return neuronValue;
-}
-
-double* Neuron::trainNeuron(double* expectedOutput, int N){
-    double error;
-
-    if(N==1){
-        error = (neuronValue)*(1 - neuronValue)*(expectedOutput[0] - neuronValue);
     }
+    return DEFINE_THIS_YO(sum);
+}
 
-    else{
-        double sum=0;
-        for(int n=0;n<N;n++){
-                sum += expectedOutput[n];
-        }
-        error = (neuronValue)*(1-neuronValue)*(sum);
-    }
 
-    adjustAllWeights(error);
 
+
+/* ************************************************************************************************************/
+/* *************************************** *//** CASCADING UPDATE **//* ***************************************/
+/* ************************************************************************************************************/
+
+bool Neuron::cascadingUpdate_master_function(){
+    if(isInputNeuron != true)
+        return false; /* MUST BE CALLED THE OUTPUT NEURON TO INITIATE */
+
+    backTrack_cascadingUpdate();
+}
+
+bool Neuron::readyForCascadingUpdate(){
 
 }
 
-void Neuron::adjustAllWeights(double error){
-    for(int i=0;i<numberOfInputs;i++)
-        weights[i] += (learning_rate * error * neuronValue);
+bool Neuron::backTrack_cascadingUpdate(){
+
 }
+
+bool Neuron::updateWeights(){
+
+}
+
+
+
+
 
 /*****************************************************//*****************************************************/
 
@@ -195,6 +220,100 @@ int Neuron::getID(){
 
 int Neuron::getNumberOfInputs(){
     return numberOfInputs;
+}
+
+
+/* ************************************************************************************************************/
+/* *************************************** *//** **************** **//* ***************************************/
+/* ************************************************************************************************************/
+
+{
+
+/*
+
+bool isInputNeuron = NULL;
+bool isOutputNeuron = NULL;
+double previousValue = 0.0;
+
+
+double Neuron::generateOutput(double* inputs){
+
+    double sum=0;
+
+    for(int i=0;i<numberOfInputs;i++)
+//        sum += inputs[i]*weights[i];
+
+    neuronValue = 1 / (1 + exp(sum)); // OUTPUT VALUE FOR SIGMOID FUNCTION
+    return neuronValue;
+}
+
+
+double* Neuron::trainNeuron(double* expectedOutput, int N){
+    double error;
+
+    if(N==1){
+        error = (neuronValue)*(1 - neuronValue)*(expectedOutput[0] - neuronValue);
+    }
+
+    else{
+        double sum=0;
+        for(int n=0;n<N;n++){
+                sum += expectedOutput[n];
+        }
+        error = (neuronValue)*(1-neuronValue)*(sum);
+    }
+
+    adjustAllWeights(error);
+
+
+}
+
+void Neuron::adjustAllWeights(double error){
+ //   for(int i=0;i<numberOfInputs;i++)
+//        weights[i] += (learning_rate * error * neuronValue);
+}
+
+
+bool Neuron::cascadingOutput_master_function(){
+    if(isOutputNeuron != true)
+        return false; // MUST BE CALLED THE OUTPUT NEURON TO INITIATE
+
+    backTrack_cascadingOutput();
+
+}
+
+bool Neuron::readyForCascadingOutput(){
+    if(isInputNeuron)
+        return true;
+
+    return (numberOfInputs == valuesFed);
+
+}
+
+bool Neuron::backTrack_cascadingOutput(){
+
+    if(readyForCascadingOutput()){
+        if(isOutputNeuron)
+            return true;
+        return feedForward();
+    }
+
+    bool isEverythingCool = true;
+
+    // Recursively call all the neurons in the previous layer
+    for(int i=0; i<numberOfInputs; i++){
+
+        isEverythingCool = linkPreviousLayer[i]->from->backTrack_cascadingOutput();
+
+        if(isEverythingCool==false)
+            return false;
+    }
+
+    backTrack_cascadingOutput();
+
+    return true;
+}
+*/
 }
 
 #endif // __NEURON_H__
