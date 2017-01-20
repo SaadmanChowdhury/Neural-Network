@@ -7,6 +7,7 @@
  /******** 100 DAYS OF CODE: Day 001 *********/
  /******** 100 DAYS OF CODE: Day 002 *********/
  /******** 100 DAYS OF CODE: Day 003 *********/
+ /******** 100 DAYS OF CODE: Day 004 *********/
 
 #include <bits/stdc++.h>
 
@@ -42,6 +43,7 @@ struct Link{
         Neuron* to;
         double weight;
         double output;
+        double error;
 };
 
 class Neuron{
@@ -56,9 +58,11 @@ private:
     vector<Link*> linkNextLayer;
     vector<Link*> linkPreviousLayer;
 
-    double generateRandomWeight();
+    bool isInputNeuron = NULL;
+    bool isOutputNeuron = NULL;
 
-    double offsetOutput(double x); /** THRESHOLD FUNCTION **/
+    double generateRandomWeight();
+    double offsetOutput(); /** THRESHOLD FUNCTION **/
 
     bool updateWeights();
 
@@ -76,9 +80,11 @@ public:
     bool connectForward(Neuron* to);
     Link* connectBackward(Neuron* from);
 
-    bool setInputVal(double input);
-    double getOutputVal();
-    bool feedForward();
+    void setInputVal(double input);
+    double getNeuronValue();
+    void feedForward();
+    void trainOutputNeuron(double expectedOutput);
+    void trainHiddenNeuron();
 /*
     double generateOutput(double* inputs);
     double* trainNeuron(double* expectedOutput, int N);
