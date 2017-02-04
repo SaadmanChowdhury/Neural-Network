@@ -8,6 +8,7 @@
  /******** 100 DAYS OF CODE: Day 002 *********/
  /******** 100 DAYS OF CODE: Day 003 *********/
  /******** 100 DAYS OF CODE: Day 004 *********/
+ /******** 100 DAYS OF CODE: Day 005 *********/
 
 #include <bits/stdc++.h>
 
@@ -60,6 +61,7 @@ private:
 
     bool isInputNeuron = NULL;
     bool isOutputNeuron = NULL;
+    bool isBiasNeuron = NULL;
 
     double generateRandomWeight();
     double offsetOutput(); /** THRESHOLD FUNCTION **/
@@ -76,6 +78,7 @@ public:
 
     bool classifyAsInputNeuron();
     bool classifyAsOutputNeuron();
+    bool classifyAsBiasNeuron();
 
     bool connectForward(Neuron* to);
     Link* connectBackward(Neuron* from);
@@ -83,6 +86,7 @@ public:
     void setInputVal(double input);
     double getNeuronValue();
     void feedForward();
+    void updateValue(Link* connection, double value);
     void trainOutputNeuron(double expectedOutput);
     void trainHiddenNeuron();
 /*
